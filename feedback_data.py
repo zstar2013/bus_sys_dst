@@ -2,7 +2,7 @@ from xlwt import Workbook, easyxf
 from ui.style import xlsStyle
 import ui.const.const_value as const
 from collections import Counter
-    
+from bus_info.models import list_team_routes    
 default_width = 256 * 30
 width_short = 256 * 5
 width_longer = 256 * 10
@@ -97,21 +97,17 @@ def write_car_oil_cost_detail(ws, date,data, team="", route=""):
     for i in range(len(data)):    
         item=data.iloc[i]
         ws.write(current_index, 0, item['sub_car_id'], style_)    
-        target_value=float(item["target_oil_cost"])    
-        #ws.write(current_index, 5, target_value, style_)    
+        target_value=float(item["target_oil_cost"])      
         write_detail_row(ws=ws, current_index=current_index, result=item, style_=style_)    
         current_index += 1    
-    # for i in range(1, 19):    
-        # ws.write(current_index, i, "", style_)    
-    
-    # result = MonthlyFeedback.objects.filter(date=date, route=route).aggregate(*sum_, target_total=Sum(F('mileage') * F(    
-        # "target_in_compute") / 100,    
-                                                                                                      # output_field=fields.FloatField()))    
-    # current_index += 1    
-    # ws.write(current_index, 0, "总计", style_)    
-    # write_detail_row(ws=ws, current_index=current_index, result=result, style_=style_, fileds=fileds_sum)    
-    
-    # current_index += 2    
+    for i in range(1, 19):    
+        ws.write(current_index, i, "", style_)    
+    sum_=data.sum()   
+    current_index += 1    
+    ws.write(current_index, 0, "总计：", style_)    
+    write_detail_row(ws=ws, current_index=current_index, result=sum_, style_=style_)        
+    current_index += 2
+    #TODO 一保二保数目待实现
     # rmdlist = RouteMonthlyDetail.objects.filter(date=date, route=route).values("num_fir_maintain", "num_sec_maintain")    
     # if len(rmdlist) is 0:    
         # return    
@@ -155,6 +151,101 @@ def write_detail_row(ws, current_index, result, style_):
     ws.write(current_index, 18, "", style_)    
     
 ###=====================================汇总表部分结束==========================================    
+
+###======================================总表部分开始===========================================
+
+
+# 生成反馈统计月报总表
+def write_monthy_feedback_sum_table(ws, date, data):
+    style_ = easyxf(xlsStyle.styles["table"]["table_normal"])
+    init_feebback_sum_table(ws, date)
+    current_index = 5
+    for item in list_team_routes:
+        for route in item.get("routes"):
+            data_route=data[data['route']==route]
+            data_sum=data_route.sum()
+            ws.write_merge(current_index, current_index, 1, 2, route, style_)
+            list_=Counter(data_route["target_oil_cost"]).most_common()
+            if len(list_)!=0:
+                most_target=list_[0][0]    
+            ws.write(current_index, 5, most_target,style_)
+            write_feedback_sum_row(ws, current_index, data_sum, date, style_)
+            current_index += 1
+
+    ws.write_merge(current_index, current_index, 1, 2, "汇总", style_)
+    sum_=data.sum()
+    write_feedback_sum_row(ws, current_index, sum_, date, style_)
+    current_index += 1
+    ws.write_merge(current_index, current_index, 1, 2, "国有统计", style_)
+    write_feedback_sum_row(ws, current_index, sum_, date, style_)
+    current_index += 1
+    ws.write_merge(current_index, current_index + 2, 10, 12,
+                   "二保：" + str(round(sum_['maintain'] if sum_['maintain'] is not None else 0, 2)) + "\n跟车：" + str(
+                       round(sum_['follow'] if sum_['follow'] is not None else 0, 2)),
+                   style_)
+
+    ws.write_merge(current_index, current_index + 2, 1, 9, "", style_)
+
+    current_index += 3
+    for cell in const.mergeCells_base_sum_tail:
+        write_cell(ws, cell, current_index)
+
+    current_index += 1
+
+    for num in const.backup_cars_num:
+        ws.write_merge(current_index, current_index, 1, 2, num, style_)
+        ws.write_merge(current_index, current_index, 3, 4, "", style_)
+        ws.write_merge(current_index, current_index, 5, 6, "", style_)
+        ws.write_merge(current_index, current_index, 7, 8, "", style_)
+        for i in range(9, 13):
+            ws.write(current_index, i, "", style_)
+        current_index += 1
+
+    ws.write_merge(current_index, current_index, 1, 2, "小计：", style_)
+    ws.write_merge(current_index, current_index, 3, 4, "", style_)
+    ws.write_merge(current_index, current_index, 5, 6, "小计：", style_)
+    ws.write_merge(current_index, current_index, 7, 8, "", style_)
+    for i in range(9, 13):
+        ws.write(current_index, i, "", style_)
+
+    ws.write_merge(5, current_index, 0, 0, "公\n交\n一\n公\n司", style_)
+
+    ws.write_merge(current_index + 2, current_index + 2, 9, 11, "制表人：", )
+    
+    
+#生成反馈汇总月报总表
+def write_monthy_feedback_detail_table(ws, date,data):
+    """
+    生成月反馈汇总表
+    :param ws:
+    :param date:
+    :return:
+    """
+    style_ = easyxf(xlsStyle.styles["table"]["table_normal"])
+    init_feedback_detail_table(ws, date)
+    current_index = 5
+    for item in list_team_routes:
+        for route in item.get("routes"):
+            data_route=data[data['route']==route]
+            data_sum=data_route.sum()
+            ws.write(current_index, 0, route, style_)
+            write_detail_row(ws=ws, current_index=current_index, result=data_sum, style_=style_)
+            current_index += 1
+    for i in range(1, 19):
+        ws.write(current_index, i, "", style_)
+    current_index += 1
+    ws.write(current_index, 0, "总计", style_)
+    data_sum=data.sum()
+    write_detail_row(ws=ws, current_index=current_index, result=data_sum, style_=style_)
+
+#生成公里总表    
+def write_monthy_mileage_table(ws,date,data):
+    data_=data[["sub_car_id","route","mileage"]]
+    for current_index,item in enumerate(data_.values):
+        for index,value in enumerate(item):
+            ws.write(current_index,index,value)
+    
+###==================================总表部分结束=====================================================
     
 #填充cell        
 def write_cell(ws, mc, offset=0):    
