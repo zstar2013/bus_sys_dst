@@ -99,6 +99,8 @@ def tim_data(data,target_index,route,team):
     new_obj=new_obj.rename(columns={0:'car_id',1:'mileage',4:'oil_cost',8:'maintain',9:'follow',10:'inspection'})
     new_obj['route']=route
     new_obj['team']=team
+	#先使电值默认为0
+	new_obj['elec_cost']=0
     new_obj=new_obj[['car_id','mileage','oil_cost','maintain','follow','inspection','route','team']].fillna(0)
     cleaned=new_obj.replace("二保",0)
     return cleaned

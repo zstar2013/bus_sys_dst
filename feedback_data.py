@@ -47,31 +47,63 @@ def write_car_oil_cost_sum(ws, date, data, team="", route=""):
     ws.write_merge(current_index + 2, current_index + 2, 9, 11, "制表人：", )    
         
 #描统计表单行     
-def write_feedback_sum_row(ws, current_index, result, date, style_,case="oil"):    
-    total_target = result["total_oil_target"]    
+def write_feedback_sum_row(ws, current_index, result, date, style_,case="oil"):        
     if case=="oil":    
         if result['oil_cost'] is None:    
-            return    
-    elif case=="elc":    
+            return
+		total_target = result["total_oil_target"]
+		total_cost = result['oil_cost'] 
+    elif case=="elec":    
         if result["electric_cost"] is None:    
-            return    
+            return
+		total_target = result["total_elc_target"]
+		total_cost = result['elec_cost']
     
-    total_oilwear = result['oil_cost']    
+       
     ws.write(current_index, 3, round(result['mileage'], 2), style_)    
     ws.write(current_index, 4, round(total_target, 2), style_)    
-    ws.write(current_index, 6, round(result['oil_cost'], 2), style_)    
+    ws.write(current_index, 6, round(total_cost, 2), style_)    
     ws.write(current_index, 7,    
-             round(result['oil_cost'] * 100 / result['mileage'] if result['mileage'] != 0 else 0,    
+             round(total_cost * 100 / result['mileage'] if result['mileage'] != 0 else 0,    
                    2), style_)    
-    if total_oilwear - total_target >= 0:    
+    if total_cost - total_target >= 0:    
         ws.write(current_index, 8, "", style_)    
-        ws.write(current_index, 9, round(total_oilwear - total_target, 2), style_)    
+        ws.write(current_index, 9, round(total_cost - total_target, 2), style_)    
     else:    
-        ws.write(current_index, 8, round(total_target - total_oilwear, 2), style_)    
+        ws.write(current_index, 8, round(total_target - total_cost, 2), style_)    
         ws.write(current_index, 9, "", style_)    
-    ws.write(current_index, 10, round(result['maintain'], 2), style_)    
+    ws.write(current_index, 10, round(float(result['maintain']), 2), style_)    
     ws.write(current_index, 11, round(result['follow'], 2), style_)    
-    ws.write(current_index, 12, round(result['inspection'], 2), style_)    
+    ws.write(current_index, 12, round(result['inspection'], 2), style_)
+
+
+# 生成单车电能消耗统计表
+def write_car_electric_cost(ws, route, date, data, team=""):
+    const.mergeCells_base_sum[0]["value"] = "车公里单车电能消耗统计表"
+    const.mergeCells_base_sum[6]["value"] = "电能消耗(度)"
+    init_feebback_sum_table(ws=ws, date=date, team=team)
+    style_ = easyxf(xlsStyle.styles["table"]["table_normal"])
+    current_index = 5
+	data_elec=data[data[power_type]=="电"]
+	#TODO 还需完成混动车充电情况
+    for item in data_elec:
+        target_value = float(item["target_elc_cost"])
+		total_target=float(item["total_elc_target"])
+        ws.write(current_index, 5, target_value, style_)
+        write_feedback_sum_row(ws, current_index, item, date, style_,case="elec")
+        current_index += 1
+
+    result = MonthlyFeedback.objects.filter(date=date, route=route,carInfo__cartype__power_type="电").aggregate(
+        mileage__sum=Sum('mileage'), electric_cost=Sum('electric_cost'),
+        maintain__sum=Sum('maintain'), follow__sum=Sum('follow'),
+        inspection=Sum('inspection'),
+        target_total=Sum(F('mileage') * F('target_in_compute_2') / 100,
+                         output_field=fields.FloatField()))
+    #result["target_total"] = target_value * (result['mileage__sum'] if result['mileage__sum'] is not None else 0) / 100
+    write_feedback_elect_row_sum(ws, current_index, result, date, style_)
+    ws.write_merge(5, current_index, 1, 1, route, style_)
+    ws.write_merge(5, current_index, 0, 0, "公\n交\n一\n公\n司", style_)
+    ws.write(current_index, 2, "总计：", style_)    
         
 ###=====================================统计表部分结束==========================================    
     
