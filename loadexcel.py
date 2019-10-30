@@ -99,8 +99,8 @@ def tim_data(data,target_index,route,team):
     new_obj=new_obj.rename(columns={0:'car_id',1:'mileage',4:'oil_cost',8:'maintain',9:'follow',10:'inspection'})
     new_obj['route']=route
     new_obj['team']=team
-	#先使电值默认为0
-	new_obj['elec_cost']=0
+    #先使电值默认为0
+    new_obj['elec_cost']=0
     new_obj=new_obj[['car_id','mileage','oil_cost','maintain','follow','inspection','route','team']].fillna(0)
     cleaned=new_obj.replace("二保",0)
     return cleaned
@@ -129,56 +129,6 @@ def tim_detail_data(data,target_index,route,team):
     new_obj=new_obj[['car_id','fix_days','stop_days','work_days','engage_mileage','public_mileage','shunt_mileage',
                                         'fault_times','fault_minutes','route','team']].fillna(0)
     return new_obj
-    
-#获取明细数据
-def load_feedb_detail_data(table, item,date):
-
-    nrows = table.nrows
-    indexR = item[0]
-    carNoC = item[1]
-    route = getRoute(table.name)
-    saveMainteData(table,route,date)
-    for i in range(indexR, nrows):
-        if table.cell(i, carNoC).value is "":
-            continue
-        if table.cell(i, carNoC).value is "0":
-            continue
-        if st.contains(str(table.cell(i, carNoC).value), "计"):
-            continue
-        if st.contains(str(table.cell(i, carNoC).value), "一保"):
-            continue
-        if st.contains(str(table.cell(i, carNoC).value), "备注"):
-            continue
-        car_id = getCar_id(table.cell(i, carNoC).value, table.name)
-        try:
-            mf=MonthlyFeedback.objects.get(fb_car_id=car_id,route=route,date=date)
-        except:
-            traceback.print_exc()
-            print("--------------------------car_id:", car_id,"route:",route,date)
-            continue
-
-        #
-        if mf is not None:
-            try:
-                mf.work_days= getFloatValue(table.cell(i, carNoC + 5).value)       # 工作天数
-                mf.fix_days=getFloatValue(table.cell(i, carNoC + 2).value)         # 修理天数
-                mf.stop_days=getFloatValue(table.cell(i, carNoC + 4).value)        # 停驶天数
-                mf.shunt_mileage=getFloatValue(table.cell(i, carNoC + 10).value)   # 调车公里
-                mf.engage_mileage=getFloatValue(table.cell(i, carNoC + 8).value)   # 包车公里
-                mf.public_mileage=getFloatValue(table.cell(i, carNoC + 9).value)   # 公用公里
-                mf.fault_times=getFloatValue(table.cell(i, carNoC + 14).value)     # 故障次数
-                mf.fault_minutes=getFloatValue(table.cell(i, carNoC + 15).value)   # 故障分钟
-                mf.target_in_compute=get_one_car_target(route,date,mf.carInfo.cartype)
-                if date.month > 5 and date.month < 10:
-                    mf.target_in_compute_2 = mf.carInfo.cartype.target_value4
-                else:
-                    mf.target_in_compute_2 = mf.carInfo.cartype.target_value3
-
-                mf.save()
-            except:
-                traceback.print_exc()
-                print("--------------------------car_id",car_id,"route:",route)
-                continue
     
 #规整数据
 def tim_data_test(data,target_index,route):
@@ -260,4 +210,5 @@ def getCar_id(id, tablename):
 def update_car_info_from_xml(path,sheetname,targetstr,date):
     xls=pd.ExcelFile(path)
     parsed=pd.read_excel(xls,sheetname)
-    target_index=local_value(parsed,target_by,True)
+    #target_index=local_value(parsed,targetstr,True)
+    return parsed

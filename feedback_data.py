@@ -51,13 +51,13 @@ def write_feedback_sum_row(ws, current_index, result, date, style_,case="oil"):
     if case=="oil":    
         if result['oil_cost'] is None:    
             return
-		total_target = result["total_oil_target"]
-		total_cost = result['oil_cost'] 
+        total_target = result["total_oil_target"]
+        total_cost = result['oil_cost'] 
     elif case=="elec":    
         if result["electric_cost"] is None:    
             return
-		total_target = result["total_elc_target"]
-		total_cost = result['elec_cost']
+        total_target = result["total_elc_target"]
+        total_cost = result['elec_cost']
     
        
     ws.write(current_index, 3, round(result['mileage'], 2), style_)    
@@ -84,11 +84,11 @@ def write_car_electric_cost(ws, route, date, data, team=""):
     init_feebback_sum_table(ws=ws, date=date, team=team)
     style_ = easyxf(xlsStyle.styles["table"]["table_normal"])
     current_index = 5
-	data_elec=data[data[power_type]=="电"]
-	#TODO 还需完成混动车充电情况
+    data_elec=data[data[power_type]=="电"]
+    #TODO 还需完成混动车充电情况
     for item in data_elec:
         target_value = float(item["target_elc_cost"])
-		total_target=float(item["total_elc_target"])
+        total_target=float(item["total_elc_target"])
         ws.write(current_index, 5, target_value, style_)
         write_feedback_sum_row(ws, current_index, item, date, style_,case="elec")
         current_index += 1
